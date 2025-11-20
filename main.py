@@ -1,31 +1,67 @@
-import socket
+import asyncio
 import os
 import mimetypes
+import threading
+import socket
 
 class TCPServer:
     host='127.0.0.1'
     port=8080
     def start_server(self):
-        # Create a TCP socket
-        # AF_INET for IPv4, SOCK_STREAM for TCP 
-        s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-        # Bind the socket to the address and port
-        s.bind((self.host,self.port))
-        # Listen for incoming connections
-        s.listen(5)
+        """Starts the TCP server."""
+        server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_socket.bind((self.host, self.port))
+        server_socket.listen(5)
         print(f"Server listening on {self.host}:{self.port}")
 
         while True:
-            cann,addr=s.accept()
+            cann,addr=server_socket.accept()
             print(f"Connected by ${cann} ${addr}")
-
-            data=cann.recv(1024)
+            client_thread = threading.Thread(
+                target=self.handle_client, args=(cann,)
+            )
+            client_thread.daemon = True  # want to keep it until the system is running
+            client_thread.start()
+    def handle_client(self,conn):
+        print("Client connected",conn)
+        try:
+            data = conn.recv(1024)
+            print("Received data:", data)
             if not data:
-                break
-            response=self.handle_request(data)
-            print("Received:", response)
-            cann.sendall(response)  # Echo back the received data
-            cann.close()
+                conn.close()
+                return
+            response = self.handle_request(data)
+            conn.sendall(response)
+        except Exception as e:  
+            print("Error handling client:", e)
+        finally:
+            conn.close()
+
+        # print("Starting server...")
+        # print(self.host,self.port,self.handle_client)
+        # server= await asyncio.start_server(self.handle_client, self.host, self.port)
+        # print(f"Server listening on {self.host}:{self.port}")
+        # async with server:
+        #     await server.serve_forever()
+
+    async def handle_clientt(self, reader, writer):
+        print("Client connected",reader,writer)
+        try:
+            data = await reader.read(1024)
+            print("Received data:", data)
+            if not data:
+                writer.close()
+                await writer.wait_closed()
+                return
+            response = self.handle_request(data)
+            writer.write(response)
+            await writer.drain()
+        except Exception as e:  
+            print("Error handling client:", e)
+        finally:
+            writer.close()
+            await writer.wait_closed()
+        
 
 class HTTPServer(TCPServer):
     rheaders = {
@@ -155,4 +191,4 @@ class HTTPRequest:
 
 if __name__ == "__main__":
     server=HTTPServer()
-    server.start_server()
+    asyncio.run(server.start_server())
