@@ -20,15 +20,6 @@ This project demonstrates how to build a minimal asynchronous HTTPS server from 
 ├── index.html         # example static file
 └── README.md
 
-## Generate a self-signed certificate (OpenSSL)
-Open a terminal (Git Bash or Windows with OpenSSL installed) and run:
-```bash
-openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes -subj "/CN=localhost"
-```
-This produces `cert.pem` and `key.pem`. Move them to the project root or `certs/` folder.
-
-(If you prefer PowerShell and Windows cert store or .pfx, you can generate alternatives — the server example below uses PEM files.)
-
 ## Example server (main.py)
 Save this minimal script as `server.py` in the project root. It uses asyncio and ssl to accept HTTPS connections and serve files.
 
@@ -36,8 +27,7 @@ Save this minimal script as `server.py` in the project root. It uses asyncio and
 1. Ensure `cert.pem` and `key.pem` are in the project root (or pass paths via --cert/--key).
 2. Run (Windows PowerShell / cmd):
 ```powershell
-python server.py --port 8443 --cert cert.pem --key key.pem
-```
+python server.py 
 3. Open a browser to: https://localhost:8443
    - Browser will show a security warning for self-signed cert; accept to proceed for testing.
 
@@ -53,12 +43,11 @@ curl -k https://localhost:8443/index.html
   - No connection keep-alive handling
   - No HTTP/2
   - Minimal header parsing and validation
-  - Uses self-signed certificates for local testing only
 - For production use, use a proven web server (nginx, Caddy) or frameworks (uvicorn, aiohttp) and proper certificates from a CA.
 
 ## Troubleshooting
 - "address already in use": pick another port or stop the process using the port.
-- OpenSSL not found on Windows: install Git for Windows (includes OpenSSL), or install OpenSSL separately, or create cert via PowerShell/private CA.
+- OpenSSL not found on Windows: install Git for Windows (includes OpenSSL), or create cert via PowerShell/private CA.
 
 ## Next steps / enhancements
 - Add proper request parsing and routing
